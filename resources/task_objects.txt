@@ -1,0 +1,13 @@
+#TASK OBJECTS
+
+_SPILL
+>{ 10.5, 0.1, 0 }
+
+_TOILET
+>{ 11.5, 0, 0 }
+
+_TOILET
+>{ 12.5, 0, 0 }
+
+_GRAFFITI
+>{ 0, 1, 0 }
