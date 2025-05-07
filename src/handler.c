@@ -15,10 +15,10 @@ void HandlerInit(Handler *handler, Player *player, LightHandler *lh) {
 
 	task_obj_count = 0;
 	
-	handler->task_object_models[SPILL]  = LoadModel("models/spill.glb");
-	handler->task_object_models[GRAFFITI]  = LoadModel("models/toilet.glb");
-	handler->task_object_models[TOILET] = LoadModel("models/toilet.glb");
-	handler->task_object_models[TRASH]  = LoadModel("models/toilet.glb");
+	handler->task_object_models[SPILL]  	= LoadModel("models/spill.glb");
+	handler->task_object_models[GRAFFITI]   = LoadModel("models/graffiti.glb");
+	handler->task_object_models[TOILET]		= LoadModel("models/toilet.glb");
+	handler->task_object_models[TRASH]  	= LoadModel("models/toilet.glb");
 
 	for(uint8_t i = 0; i < 4; i++) {
 		for(uint8_t j = 0; j < handler->task_object_models[i].materialCount; j++)
@@ -31,10 +31,8 @@ void HandlerInit(Handler *handler, Player *player, LightHandler *lh) {
 
 void HandlerClose(Handler *handler) {
 	for(uint8_t i = 0; i < 4; i++) {
+		UnloadModel(handler->task_object_models[i]);
 	}
-
-	UnloadModel(handler->task_object_models[TOILET]);
-	//free(handler->task_objects);
 }
 
 void HandlerUpdate(Handler *handler) {

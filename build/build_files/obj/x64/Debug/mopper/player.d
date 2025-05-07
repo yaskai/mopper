@@ -42,12 +42,12 @@ obj/x64/Debug/mopper/player.o: ../../src/player.c \
  /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h \
  /usr/include/bits/struct_rwlock.h /usr/include/alloca.h \
  /usr/include/bits/stdlib-float.h /usr/include/string.h \
- /usr/include/strings.h ../../src/map.h \
+ /usr/include/strings.h ../../src/audioplayer.h \
  ../external/raylib-master/src/raylib.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
- ../external/raylib-master/src/raymath.h ../../src/taskobject.h \
- ../../src/player.h ../../src/lights.h ../../src/config.h \
- ../../src/handler.h
+ ../../src/map.h ../external/raylib-master/src/raymath.h \
+ ../../src/taskobject.h ../../src/player.h ../../src/lights.h \
+ ../../src/config.h ../../src/handler.h
 /usr/include/stdc-predef.h:
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/float.h:
 /usr/include/math.h:
@@ -123,9 +123,10 @@ obj/x64/Debug/mopper/player.o: ../../src/player.c \
 /usr/include/bits/stdlib-float.h:
 /usr/include/string.h:
 /usr/include/strings.h:
-../../src/map.h:
+../../src/audioplayer.h:
 ../external/raylib-master/src/raylib.h:
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h:
+../../src/map.h:
 ../external/raylib-master/src/raymath.h:
 ../../src/taskobject.h:
 ../../src/player.h:

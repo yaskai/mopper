@@ -52,7 +52,7 @@ void main() {
 		}
 	}
 
-	vec3 ambient_light = vec3(0.1, 0.1, 0.1);  // Small ambient light
+	vec3 ambient_light = vec3(0.01, 0.01, 0.01);  // Small ambient light
 	total_light += ambient_light;
 
 	vec3 lit = tint.rgb * total_light;

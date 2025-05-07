@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "audioplayer.h"
 #include "map.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -169,6 +170,7 @@ void PlayerInput(Player *player) {
 		}
 	}
 
+	// Interact with task objects
 	if(IsMouseButtonPressed(0)) {
 		Ray ray = (Ray){.position = player->position, .direction = Vector3Normalize(Vector3Subtract(cam->target, cam->position))};
 
@@ -178,6 +180,8 @@ void PlayerInput(Player *player) {
 			
 			RayCollision coll = GetRayCollisionBox(ray, obj->bounds);
 			if(coll.hit && coll.distance <= 1.0f) {
+				PlaySound(player->ap->sfx[SFX_CLEAN].sound);
+
 				obj->flags &= ~TASK_OBJ_ACTIVE;
 				player->tasks[obj->type].progress++;
 				if(player->tasks[obj->type].progress == player->tasks[obj->type].count) player->tasks[obj->type].complete = true;
@@ -185,8 +189,6 @@ void PlayerInput(Player *player) {
 			}
 		}
 	}
-
-	//if(IsKeyPressed(KEY_ONE)) player->tasks[1].complete = !player->tasks[1].complete;
 }
 
 void PlayerDrawDebugInfo(Player *player, Font font) {

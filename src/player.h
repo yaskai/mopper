@@ -2,6 +2,7 @@
 #define PLAYER_H_
 
 #include <stdint.h>
+#include "audioplayer.h"
 #include "lights.h"
 #include "raylib.h"
 #include "config.h"
@@ -54,6 +55,8 @@ typedef struct {
 	RenderTexture rend_tex;
 
 	Map *map;
+
+	AudioPlayer *ap;
 
 	Font font;
 

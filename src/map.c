@@ -36,6 +36,7 @@ void LoadMap(Map *map, char *file_path) {
 	uint32_t tri_indices[map->poly_count];
     for(uint32_t i = 0; i < map->poly_count; i++) tri_indices[i] = map->polygons[i].id; 
 
+	// Make BVH 
 	map->root_node = MakeBvhNode(map->polygons, tri_indices, map->poly_count, 0);
 }
 
@@ -381,19 +382,22 @@ void BvhTraceNodes(BvhNode *node, Ray ray, BvhNode **hits, uint32_t *hit_count, 
 	RayCollision coll = GetRayCollisionBox(ray, node->bounds);
 
 	if(coll.hit && *hit_count < max_hits) {
-		if(coll.distance <= max_dist && node->tri_count > 0) {
+		if(node->tri_count > 0) {
 			// If node is leaf, add to hits
-			hits[*hit_count] = node;
-			(*hit_count)++;
+
+			if(coll.distance <= max_dist) hits[(*hit_count)++] = node;
+
 		} else if(node->tri_count == 0) {
 			// If node is a branch, test children	
+
 			uint8_t next_a = 0;		// Index of first child to test 
 			uint8_t next_b = 1;		// Index of second child to test 
 		
+			// Sort child nodes to test by proximity
 			float dist_a = Vector3Distance(BoxGetCenter(node->children[0]->bounds), coll.point);
 			float dist_b = Vector3Distance(BoxGetCenter(node->children[1]->bounds), coll.point);
 
-			// Sort child nodes to test by proximity
+			// Order by distance
 			if(dist_a < dist_b) {
 				next_a = 1;
 				next_b = 0;

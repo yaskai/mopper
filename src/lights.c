@@ -31,7 +31,8 @@ void MakeLight(int type, float range, Vector3 position, Color color, LightHandle
 
 void InitLights(LightHandler *handler) {
 	handler->light_count = 0;
-	LIGHT_COLOR_DEFAULT = ColorBrightness(BEIGE, -0.25f);
+	//LIGHT_COLOR_DEFAULT = ColorBrightness(BEIGE, -0.25f);
+	LIGHT_COLOR_DEFAULT = ColorBrightness(BEIGE, 0.25f);
 
 	handler->shader = LoadShader(
 		TextFormat("shaders/light_v.glsl"),
@@ -49,9 +50,11 @@ void InitLights(LightHandler *handler) {
 	time_loc = GetShaderLocation(handler->shader, "time");
 
 	// Static lights
-	MakeLight(LIGHT_DEFAULT, 30.0f, (Vector3){   0.0f, 8.0f,  0.0f }, LIGHT_COLOR_DEFAULT, handler);
-	MakeLight(LIGHT_DEFAULT, 30.0f, (Vector3){  12.0f, 8.0f,  0.0f }, LIGHT_COLOR_DEFAULT, handler);
-	MakeLight(LIGHT_DEFAULT, 30.0f, (Vector3){ -18.0f, 8.0f, 16.0f }, LIGHT_COLOR_DEFAULT, handler);
+	MakeLight(LIGHT_DEFAULT, 35.0f, (Vector3){   0.0f,   8.0f,   0.0f }, LIGHT_COLOR_DEFAULT, 			handler);
+	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){ -40.0f,   3.0f,   0.0f }, LIGHT_COLOR_DEFAULT, 			handler);
+	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){ -40.0f,   3.0f, -15.0f }, LIGHT_COLOR_DEFAULT,			handler);
+	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){   0.0f,   3.0f, -44.0f }, LIGHT_COLOR_DEFAULT, 			handler);
+	MakeLight(LIGHT_DEFAULT, 10.0f, (Vector3){ -65.0f,   3.0f,  15.0f }, LIGHT_COLOR_DEFAULT, 			handler);
 
 	//MakeLight(LIGHT_PLAYER, 10.0f, Vector3Zero(), LIGHT_COLOR_DEFAULT, handler);
 

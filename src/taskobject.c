@@ -23,25 +23,18 @@ void TaskOjbectUpdate(TaskObject *obj) {
 	};
 }
 
-void TaskObjectDraw(TaskObject *obj) {
-	if((obj->flags & TASK_OBJ_ACTIVE) == 0) return;
-	
-	DrawModelShaded(obj->model, obj->position);
+void TaskObjectInteract(TaskObject *obj) {
 	switch(obj->type) {
 		case SPILL: 
-			DrawModelShaded(obj->model, obj->position);
 			break;
+
 		case GRAFFITI:
-			//DrawCube(obj->position, 1.0f, 1.0f, 1.0f, BROWN);
-			DrawModelShaded(obj->model, obj->position);
 			break;
+
 		case TRASH:
-			//DrawCube(obj->position, 1.0f, 1.0f, 1.0f, ORANGE);
-			DrawModelShaded(obj->model, obj->position);
 			break;
+
 		case TOILET:
-			//DrawCube(obj->position, 1.0f, 1.0f, 1.0f, YELLOW);
-			DrawModelShaded(obj->model, obj->position);
 			break;
 	}
 }

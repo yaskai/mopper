@@ -9,6 +9,7 @@
 #include "config.h"
 #include "map.h"
 #include "handler.h"
+#include "audioplayer.h"
 
 enum GAME_STATE : uint8_t {
 	START,
@@ -36,6 +37,8 @@ void PlayerSetHandler(Player *player, Handler *handler);
 int main () {
 	SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_FULLSCREEN_MODE);
 
+	SetTraceLogLevel(LOG_WARNING);
+
 	Config conf = (Config){0};
 	LoadConfig(&conf, "options.conf");
 
@@ -48,6 +51,7 @@ int main () {
 	SetWindowFocused();
 	HideCursor();
 	DisableCursor();
+	InitAudioDevice();
 
 	SearchAndSetResourceDir("resources");
 	
@@ -101,9 +105,13 @@ int main () {
 
 	Handler handler = {0};
 	HandlerInit(&handler, &player, &light_handler);
-
 	PlayerSetHandler(&player, &handler);
 	
+	AudioPlayer	ap = {0};
+	AudioPlayerInit(&ap);
+
+	player.ap = &ap;
+
 	while(!WindowShouldClose()) {
 		// Update
 		switch(game_state) {
@@ -119,6 +127,9 @@ int main () {
 			case GAMEOVER:
 				break;
 		}	
+
+		//UpdateMusicStream(ap.tracks[TRACK_DEFAULT_MUSIC].music);
+		//UpdateMusicStream(ap.tracks[TRACK_PHARM_MUSIC].music);
 
 		// Render 
 		BeginDrawing();
@@ -148,6 +159,7 @@ int main () {
 	UnloadModel(level_model);
 	UnloadModel(clipboard_model);
 	HandlerClose(&handler);
+	AudioPlayerClose(&ap);
 
 	CloseWindow();
 	return 0;

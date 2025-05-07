@@ -38,10 +38,10 @@ obj/x64/Debug/mopper/handler.o: ../../src/handler.c \
  /usr/include/bits/stdio_lim.h ../../src/handler.h ../../src/lights.h \
  ../external/raylib-master/src/raylib.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
- ../../src/taskobject.h ../../src/player.h ../../src/config.h \
- ../../src/map.h ../external/raylib-master/src/raymath.h \
- /usr/include/math.h /usr/include/bits/math-vector.h \
- /usr/include/bits/libm-simd-decl-stubs.h \
+ ../../src/taskobject.h ../../src/player.h ../../src/audioplayer.h \
+ ../../src/config.h ../../src/map.h \
+ ../external/raylib-master/src/raymath.h /usr/include/math.h \
+ /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h \
  /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
  /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
  /usr/include/bits/mathcalls-helper-functions.h \
@@ -116,6 +116,7 @@ obj/x64/Debug/mopper/handler.o: ../../src/handler.c \
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h:
 ../../src/taskobject.h:
 ../../src/player.h:
+../../src/audioplayer.h:
 ../../src/config.h:
 ../../src/map.h:
 ../external/raylib-master/src/raymath.h:

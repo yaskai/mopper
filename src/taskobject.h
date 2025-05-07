@@ -33,4 +33,6 @@ void CloseTaskObject(TaskObject *obj);
 void TaskOjbectUpdate(TaskObject *obj);
 void TaskObjectDraw(TaskObject *obj);
 
+void TaskObjectInteract(TaskObject *obj);
+
 #endif // !TASKOBJECT_H_
