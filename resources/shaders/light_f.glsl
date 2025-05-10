@@ -35,7 +35,7 @@ void main() {
 	// Sample the texture at current UV coordinates
 	vec4 tex_color = texture(texture0, frag_texcoord);
 	vec4 tint = tex_color;
-
+	
 	vec3 total_light = vec3(0);
 	for(int i = 0; i < light_count; i++) {
 		if(light_enabled[i] == 1) {
@@ -60,6 +60,12 @@ void main() {
 	float dither = noise(frag_worldpos.xz, time) * 0.025;
 	vec3 quantized = ((lit + dither) * 255.0) / 255.0;
 
+	if(tex_color.a < 0.1) {
+		quantized.r = 0;
+		quantized.g = 0;
+		quantized.b = 0;
+	}
+	
 	final_color = vec4(quantized, tex_color.a);
 }
 

@@ -66,4 +66,6 @@ void PlayTrack(AudioPlayer *ap, uint8_t id);
 void StopEffect(AudioPlayer *ap, uint8_t id);
 void StopTrack(AudioPlayer *ap, uint8_t id);
 
+void EffectSetSpatialVolume(AudioPlayer *ap, uint8_t id, Vector3 source_pos, Vector3 player_pos);
+
 #endif // !AUDIOPLAYER_H_

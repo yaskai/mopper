@@ -29,7 +29,7 @@ obj/x64/Debug/mopper/main.o: ../../src/main.c /usr/include/stdc-predef.h \
  /usr/include/bits/mathcalls-helper-functions.h \
  /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
  /usr/include/bits/iscanonical.h ../../src/include/resource_dir.h \
- ../../src/handler.h ../../src/rw.h
+ ../../src/handler.h ../../src/rw.h ../../src/npc.h
 /usr/include/stdc-predef.h:
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h:
 /usr/include/stdint.h:
@@ -86,3 +86,4 @@ obj/x64/Debug/mopper/main.o: ../../src/main.c /usr/include/stdc-predef.h \
 ../../src/include/resource_dir.h:
 ../../src/handler.h:
 ../../src/rw.h:
+../../src/npc.h:

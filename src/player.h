@@ -14,6 +14,7 @@
 #define PLAYER_DAMAGE		0x04
 #define PLAYER_HEAL			0x08
 #define PLAYER_WIN			0x10
+#define PLAYER_ATTACKED		0x20
 
 #define PLAYER_BOUNDS \
 (BoundingBox){(Vector3){ -1.0f, -1.0f, -1.0f }, (Vector3){ 1.0f, 1.0f, 1.0f }}
@@ -67,6 +68,14 @@ typedef struct {
 	Task *tasks;
 
 	TaskObject *task_objects;
+
+	char *dialogue;
+	float dialogue_timer;
+
+	uint8_t minute, hour;
+	uint8_t task_points;
+
+	uint8_t inhaler_count;
 } Player;
 
 Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Config *conf, LightHandler *light_handler);
@@ -92,5 +101,7 @@ void PlayerReset(Player *player);
 
 void UpdateTasks(Player *player);
 bool CheckWin(Player *player);
+
+void CheckGround(Player *player);
 
 #endif

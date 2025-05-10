@@ -36,18 +36,25 @@ Vector3 closest_coll_point = (Vector3){0, 0, 0};
 
 Ray move_ray;
 
-uint8_t inhaler_count = 0;
 float dmg_timer = 0.0f;
 float heal_timer = 0.0f;
 
 Vector3 start_pos;
 
+RenderTexture inhaler_rtex;
+Model inhaler_model;
+float inhaler_angle;
+
+float time_tick = 0.0f;
+
 Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Config *conf, LightHandler *light_handler) {
 	RenderTexture rend_tex;
 	rend_tex = LoadRenderTexture(conf->ww, conf->wh);
+		
+	inhaler_rtex = LoadRenderTexture(128, 128);
+	inhaler_model = LoadModel("models/inhaler.glb");
 	
-	inhaler_count = 3;
-	dmg_timer = 10.0f;
+	dmg_timer = 30.0f;
 	heal_timer = 0.0f;
 
 	Player player = (Player){
@@ -64,9 +71,10 @@ Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Conf
 		.map = map,
 		.light_handler = light_handler,
 
-		.yaw = 0.0f,
-		.pitch = 0.0f,
-		.roll = 0.0f
+		.yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f,
+
+		.minute = 0, .hour = 0,
+		.task_points = 0, .inhaler_count = 3
 	}; 
 
 	cb_tex = LoadRenderTexture(1024, 1024);
@@ -97,7 +105,8 @@ Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Conf
 void PlayerClose(Player *player) {
 	UnloadRenderTexture(player->rend_tex);
 	UnloadRenderTexture(cb_tex);
-	UnloadTexture(paper_tex);	
+	UnloadTexture(paper_tex);
+	UnloadModel(inhaler_model);
 
 	free(player->tasks);
 }
@@ -109,20 +118,40 @@ void PlayerUpdate(Player *player) {
 								    .max = Vector3Add(PLAYER_BOUNDS.max, player->position) };
 
 	PlayerInput(player);
+	CheckGround(player);	
 
-	if(Vector3Length(player->velocity) > 0) dmg_timer -= dt * 0.01f;
+	if(Vector3Length(player->velocity) > 0) {
+		dmg_timer -= dt * 0.01f;
+		PlayTrack(player->ap, TRACK_PLAYER_WALK);
+	} else {
+		dmg_timer += dt * 0.015f;
+		if(dmg_timer > 1.0f) player->flags &= ~PLAYER_DAMAGE;
+	}
+
+	time_tick -= GetFrameTime();
+	if(time_tick <= 0.0f) {
+		player->minute++;
+		if(player->minute >= 60) {
+			player->hour++;
+			player->minute = 0;
+		}
+		time_tick = 2.0f;
+	}
+
+	player->dialogue_timer -= GetFrameTime();
+	
 	if(dmg_timer <= 0.0f) { 
 		player->flags |= PLAYER_DAMAGE;
-		dmg_timer = 10.0f;
-
-		PlayEffect(player->ap, SFX_BREATHE);
-	}
+		//dmg_timer = 30.0f;
+		
+		//PlayEffect(player->ap, SFX_BREATHE);
+	} 
 
 	if(player->flags & PLAYER_DAMAGE) player->hp -= dt * 0.01f;
 
 	if(player->flags & PLAYER_HEAL) {
 		player->flags &= ~PLAYER_DAMAGE;
-		dmg_timer = 10.0f;
+		dmg_timer = 30.0f;
 
 		heal_timer -= dt * 0.01f;
 		if(heal_timer <= 0.0f) player->flags &= ~PLAYER_HEAL;
@@ -143,7 +172,28 @@ void PlayerDraw(Player *player) {
 	DrawBreathMeter(player);
 	
 	BeginMode2D(*player->cam2D);
-		DrawTextureRec(player->rend_tex.texture, (Rectangle){0, 0, player->conf->ww, -player->conf->wh}, (Vector2){0, 0}, WHITE);
+
+	DrawTextureRec(player->rend_tex.texture, (Rectangle){0, 0, player->conf->ww, -player->conf->wh}, (Vector2){0, 0}, WHITE);
+
+	if(player->dialogue_timer > 0.0f) {
+		DrawTextEx(
+			player->font,
+			player->dialogue,
+			(Vector2){(float)player->conf->ww / 4, (float)player->conf->wh / 2},
+			80,
+			0.5f, 
+			RAYWHITE);
+	}
+		
+	if(!(player->flags & PLAYER_TASKVIEW)) return;
+	DrawTextEx(
+		player->font,
+		TextFormat("%02d:%02d", player->hour, player->minute),
+		(Vector2){(float)player->conf->ww / 2 - 130, 40},
+		80,
+		2, 
+		RAYWHITE);
+
 	EndMode2D();
 }
 
@@ -195,7 +245,8 @@ void PlayerInput(Player *player) {
 
 	cam->position = player->position;
     cam->target = Vector3Add(cam->position, forward);
-
+	
+	// Toggle task view
 	if(IsKeyPressed(KEY_E)) {
 		if((player->flags & PLAYER_TASKVIEW) == 0) {
 			player->flags |= PLAYER_TASKVIEW;
@@ -210,7 +261,7 @@ void PlayerInput(Player *player) {
 	// Interact with task objects
 	if(IsMouseButtonPressed(0)) {
 		Ray ray = (Ray){.position = player->position, .direction = Vector3Normalize(Vector3Subtract(cam->target, cam->position))};
-		ray.position = Vector3Subtract(ray.position, Vector3Scale(ray.direction, 1.0f));
+		ray.position = Vector3Subtract(ray.position, Vector3Scale(ray.direction, 0.5f));
 
 		for(uint8_t i = 0; i < pHandler->task_obj_count; i++) {
 			TaskObject *obj = &pHandler->task_objects[i];
@@ -218,12 +269,13 @@ void PlayerInput(Player *player) {
 			
 			RayCollision coll = GetRayCollisionSphere(ray, obj->position, 1.0f);
 
-			if(coll.hit && coll.distance <= 1.5f) {
+			if(coll.hit && coll.distance <= 2.0f) {
 				PlaySound(player->ap->sfx[SFX_CLEAN].sound);
 
 				obj->flags &= ~TASK_OBJ_ACTIVE;
 
 				player->tasks[obj->type].progress++;
+				player->task_points++;
 				UpdateTasks(player);
 				break;
 			}
@@ -231,7 +283,7 @@ void PlayerInput(Player *player) {
 	}
 
 	// Heal
-	if(IsKeyPressed(KEY_Q) && inhaler_count > 0) {
+	if(IsKeyPressed(KEY_Q) && player->inhaler_count > 0) {
 		StopEffect(player->ap, SFX_BREATHE);
 		PlayEffect(player->ap, SFX_USE_INHALER);
 
@@ -241,9 +293,9 @@ void PlayerInput(Player *player) {
 		player->hp += 25.0f;
 
 		heal_timer = 1.0f;
-		dmg_timer = 2.0f;
+		dmg_timer = 30.0f;
 
-		inhaler_count--;
+		player->inhaler_count--;
 	}
 }
 
@@ -305,8 +357,8 @@ void PlayerDrawClipBoard(Player *player) {
 }
 
 Vector3 PlayerTraceMove(Player *player, Vector3 start_point, Vector3 wish_point) { Map *map = player->map;
-	start_point.y -= 0.7f;
-	wish_point.y -= 0.7f;
+	start_point.y -= 0.75f;
+	wish_point.y -= 0.75f;
 
 	Vector3 dest = wish_point;	// Initialize destination vector
 
@@ -386,20 +438,39 @@ void DrawTaskView(Player *player) {
 }
 
 void DrawBreathMeter(Player *player) {
+	inhaler_angle += GetFrameTime() * 100;
+	if(inhaler_angle > 360) inhaler_angle = 0;
+
+	BeginTextureMode(inhaler_rtex);
+	ClearBackground((Color){0, 0, 0, 0});
+	BeginMode3D(*player->fixed_cam);
+	DrawModelEx(inhaler_model, Vector3Zero(), (Vector3){0, 1, 0}, inhaler_angle, Vector3One(), WHITE);
+	EndMode3D();
+	EndTextureMode();
+
 	BeginTextureMode(player->rend_tex);
+	//ClearBackground((Color){0, 0, 0, 0});
 
 	int ww = player->conf->ww, wh = player->conf->wh;
 	DrawRectangle(0, 0, ww, 32, ColorAlpha(GRAY, 0.5f));
 	
 	int rand_range = 0;
-
 	Color c = GREEN;
 	if(player->hp <= 50) { c = YELLOW, rand_range = 1; }
 	if(player->hp <= 25) { c = RED,	   rand_range = 5; }
 
 	DrawRectangleV(Vector2Zero(), (Vector2){ww * (player->hp / 100) + GetRandomValue(-rand_range, rand_range), 32}, c);
-
 	EndTextureMode();
+	
+	if(player->inhaler_count <= 0 || (player->flags & PLAYER_TASKVIEW) == 0) return;
+	DrawTextureRec(
+			inhaler_rtex.texture,
+			(Rectangle){0, 0, inhaler_rtex.texture.width, -inhaler_rtex.texture.height},
+			(Vector2){0, 32},
+			WHITE);
+
+	DrawTextEx(player->font, TextFormat("X%d", player->inhaler_count), (Vector2){100, 80}, 60, 1, RAYWHITE);
+	DrawTextEx(player->font, TextFormat("tokens: %d", player->task_points), (Vector2){100, 40}, 60, 1, RAYWHITE);
 }
 
 void PlayerDie(Player *player) {
@@ -418,8 +489,13 @@ void PlayerReset(Player *player) {
 
 	player->velocity = Vector3Zero();
 
-	dmg_timer = 10.0f;
-	heal_timer = 0.0f;	
+	dmg_timer = 30.0f;
+	heal_timer = 0.0f;
+	
+	time_tick = 0.0f;
+	player->hour = 0, player->minute = 0;
+	player->task_points = 0;
+	player->inhaler_count = 3;
 }
 
 void UpdateTasks(Player *player) {
@@ -428,7 +504,7 @@ void UpdateTasks(Player *player) {
 		if(task->progress == task->count) task->complete = true;
 	}
 
-	if(CheckWin(player)) player->flags |= PLAYER_WIN;
+	//if(CheckWin(player)) player->flags |= PLAYER_WIN;
 }
 
 bool CheckWin(Player *player) {
@@ -436,5 +512,41 @@ bool CheckWin(Player *player) {
 		if(!player->tasks[i].complete) return false;	
 
 	return true;
+}
+
+void CheckGround(Player *player) {
+	Map *map = player->map;
+
+	float snap_dist = 0.5f;
+
+	Ray ray = { Vector3Add(player->position, player->velocity), (Vector3){0, -1, 0} };
+	
+	// -- BVH SETUP --
+	uint32_t max_node_hits = 64;
+	uint32_t node_hit_count = 0;
+	float bvh_max_dist = 2.0f;
+	BvhNode *hit_nodes[max_node_hits];
+	BvhTraceNodes(map->root_node, ray, hit_nodes, &node_hit_count, max_node_hits, bvh_max_dist);
+	
+	RayCollision closest_coll;
+	closest_coll.distance = FLT_MAX;	
+	
+	for(uint32_t i = 0; i < node_hit_count; i++) {
+		BvhNode *node = hit_nodes[i];
+
+		for(uint32_t j = 0; j < node->tri_count; j++) {
+			Polygon *tri = &map->polygons[node->tri_indices[j]];
+			if(fabsf(tri->normal.y) < 0.9f) continue;
+
+			RayCollision coll = GetRayCollisionTriangle(ray, tri->vertices[0], tri->vertices[1], tri->vertices[2]);
+
+			if(coll.hit && coll.distance <= closest_coll.distance) closest_coll = coll;
+		}
+	}
+
+	float dist_from_ground = fabs((player->position.y - 1.5f) - (closest_coll.point.y));
+
+	if(dist_from_ground <= snap_dist) 
+		player->position.y = closest_coll.point.y + 1.5f;
 }
 

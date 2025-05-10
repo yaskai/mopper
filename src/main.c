@@ -11,12 +11,13 @@
 #include "handler.h"
 #include "audioplayer.h"
 #include "rw.h"
+#include "npc.h"
 
 enum GAME_STATE : uint8_t { START, MAIN, GAMEOVER_LOSE, GAMEOVER_WIN }; 
 uint8_t game_state = START;
 
-void UpdateMain(Player *player, LightHandler *lights, Handler *handler);
-void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler);
+void UpdateMain(Player *player, LightHandler *lights, Handler *handler, Salesman *sm, Pharmacist *pm);
+void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler, Salesman *sm, Pharmacist *pm);
 void ResetGame(Player *player, Handler *handler);
 void RenderTitle(Config *conf, Map *map, LightHandler *lh);
 
@@ -29,6 +30,7 @@ Font font0;
 
 Vector2 v_res = {320, 240};
 RenderTexture buf_rtex;
+RenderTexture ui_buf;
 
 void PlayerSetHandler(Player *player, Handler *handler);
 
@@ -53,10 +55,12 @@ int main () {
 	SearchAndSetResourceDir("resources");
 	
 	buf_rtex = LoadRenderTexture(v_res.x, v_res.y);
+	ui_buf = LoadRenderTexture(1920, 1080);
 	font0 = LoadFont("fonts/dokdo.ttf");
 
 	char *level_name;
-	level_name = "mall_greybox.glb";
+	level_name = "map/map_model.glb";
+	//level_name = "mall_greybox.glb";
 	//level_name = "testmap.glb";
 
 	Map map = (Map){0};
@@ -87,30 +91,37 @@ int main () {
 	LightHandler light_handler = (LightHandler){0};
 	InitLights(&light_handler);
 	
-	for(uint16_t i = 0; i < map.model.materialCount; i++) {
-		map.model.materials[i].shader = light_handler.shader;
-	}
+	for(uint16_t i = 0; i < map.model.materialCount; i++) map.model.materials[i].shader = light_handler.shader;
 
 	Player player = PlayerInit((Vector3){3.0f, 1.5f, 0.0f}, &cam, &cam2D, &map, &conf, &light_handler);
 	player.font = font0;
 	player.fixed_cam = &fixed_cam;
+		
+	Model npc_models[2] = { LoadModel("models/perfumeGuy.glb"), LoadModel("models/pharmacist.glb") };
 
-	Model sm_model = LoadModel("models/perfumeGuy.glb");
-	for(uint16_t i = 0; i < map.model.materialCount; i++) map.model.materials[i].shader = light_handler.shader;
+	for(uint8_t i = 0; i < 2; i++) 
+		for(uint8_t j = 0; j < npc_models[i].materialCount; j++)
+		npc_models[i].materials[j].shader = light_handler.shader;
+
+	AudioPlayer	ap = {0};
+	AudioPlayerInit(&ap);
+	player.ap = &ap;
+
+	Salesman sm = SalesmanInit(&map, &player, &light_handler, player.position, &npc_models[0]);
+	sm.position.y = 1.0f;
+
+	Pharmacist pm = PharmacistInit(Vector3Zero(), &npc_models[1]);
 
 	Handler handler = {0};
 	HandlerInit(&handler, &player, &light_handler);
 	PlayerSetHandler(&player, &handler);
-	
-	AudioPlayer	ap = {0};
-	AudioPlayerInit(&ap);
 
-	player.ap = &ap;
 
-	DataRead(&light_handler, &handler, "map/lights.txt", "map/objects.txt");
+	SetNpcPointers(&sm, &pm);
+	DataRead(&light_handler, &handler);
 
 	while(!WindowShouldClose()) {
-		//PlayTrack(&ap, TRACK_DEFAULT_MUSIC);
+		PlayTrack(&ap, TRACK_DEFAULT_MUSIC);
 		
 		// Update
 		switch(game_state) {
@@ -119,7 +130,7 @@ int main () {
 				break;
 
 			case MAIN:
-				UpdateMain(&player, &light_handler, &handler);
+				UpdateMain(&player, &light_handler, &handler, &sm, &pm);
 				break;
 
 			case GAMEOVER_LOSE:
@@ -139,7 +150,7 @@ int main () {
 					break;
 
 				case MAIN:
-					RenderMain(&player, &map, &light_handler, &conf, &handler);
+					RenderMain(&player, &map, &light_handler, &conf, &handler, &sm, &pm);
 					break;
 
 				case GAMEOVER_LOSE:
@@ -162,7 +173,11 @@ int main () {
 	UnloadMap(&map);
 	UnloadFont(font0);
 	UnloadRenderTexture(buf_rtex);
+	UnloadRenderTexture(ui_buf);
 	//UnloadModel(level_model);
+	
+	for(uint8_t i = 0; i < 2; i++) UnloadModel(npc_models[i]);
+
 	HandlerClose(&handler);
 	AudioPlayerClose(&ap);
 
@@ -170,28 +185,28 @@ int main () {
 	return 0;
 }
 
-void UpdateMain(Player *player, LightHandler *lights, Handler *handler) {
-	lights->player_light_on = 1;
-	lights->player_light_range = 1;
-	lights->player_pos = Vector3Subtract(player->position, player->facing);
+void UpdateMain(Player *player, LightHandler *lights, Handler *handler, Salesman *sm, Pharmacist *pm) {
 	UpdateLights(lights);
-
 	PlayerUpdate(player);
-
 	HandlerUpdate(handler);
+	SalesmanUpdate(sm);
+	PharmacistUpdate(pm);
 
 	if((player->flags & PLAYER_ALIVE) == 0) game_state = GAMEOVER_LOSE;
 	if((player->flags & PLAYER_WIN)	  != 0) game_state = GAMEOVER_WIN;
 }
 
-void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler) {
+void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler, Salesman *sm, Pharmacist *pm) {
 	BeginTextureMode(buf_rtex);
 	ClearBackground((Color){0, 0, 0, 0});
 	BeginMode3D(cam);
 
 	DrawModelShadedEx(map->model, Vector3Zero(), 0.0f);
 	HandlerDraw(handler);
-	
+
+	SalesmanDraw(sm);
+	PharmacistDraw(pm);
+
 	//DrawModel(map->model, Vector3Zero(), 1.0f, WHITE);
 	//DebugDrawMapTris(map);
 	
@@ -208,7 +223,7 @@ void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Ha
 
 	DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
 	PlayerDraw(player);
-	PlayerDrawDebugInfo(player, font0);
+	//PlayerDrawDebugInfo(player, font0);
 
 	EndMode2D();
 }
@@ -229,11 +244,19 @@ void RenderTitle(Config *conf, Map *map, LightHandler *lh) {
 	DrawModelShadedEx(map->model, Vector3Zero(), 0.0f);
 	EndMode3D();
 	EndTextureMode();
-
+	
+	BeginTextureMode(ui_buf);
+	ClearBackground((Color){0, 0, 0, 0});
 	BeginMode2D(cam2D);
-	DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
 	DrawTextEx(font0, "The Last Mopper", (Vector2){450, 300}, 150, 2.0f, RAYWHITE);
 	DrawTextEx(font0, "PRESS ENTER TO START", (Vector2){680, 800}, 50, 2.0f, RAYWHITE);
 	EndMode2D();
-}
+	EndTextureMode();
 
+	BeginMode2D(cam2D);
+	//DrawTextEx(font0, "The Last Mopper", (Vector2){450, 300}, 150, 2.0f, RAYWHITE);
+	//DrawTextEx(font0, "PRESS ENTER TO START", (Vector2){680, 800}, 50, 2.0f, RAYWHITE);
+	DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
+	DrawTexturePro(ui_buf.texture, (Rectangle){0, 0, 1920, -1080}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
+	EndMode2D();
+}

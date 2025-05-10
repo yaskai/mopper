@@ -46,8 +46,8 @@ void HandlerDraw(Handler *handler) {
 		if((obj->flags & TASK_OBJ_ACTIVE) == 0) continue;
 
 		DrawModelShadedEx(obj->model, obj->position, obj->angle);
-		DrawBoundingBox(obj->bounds, WHITE);
-		DrawSphere(obj->position, 1.0f, ColorAlpha(WHITE, 0.5f));
+		//DrawBoundingBox(obj->bounds, WHITE);
+		//DrawSphere(obj->position, 1.0f, ColorAlpha(WHITE, 0.5f));
 	}
 }
 
