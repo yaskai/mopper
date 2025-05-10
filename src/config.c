@@ -4,6 +4,8 @@
 #include "config.h"
 
 void LoadConfig(Config *conf, char *file_path) {
+	conf->flags = 0;
+
 	FILE *file = fopen(file_path, "r");
 
 	if(file != NULL) {
@@ -29,6 +31,7 @@ void LoadConfig(Config *conf, char *file_path) {
 		printf("framerate: %d\n", conf->fps);
 		printf("mouse sensitivity: %f\n", conf->mouse_sensitivity);
 		
+		conf->flags |= CONF_LOADED;
 		fclose(file);
 	} else puts("ERROR: COULD NOT LOCATE CONFIGURATION FILE");
 }

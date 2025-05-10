@@ -1,8 +1,8 @@
 #version 330
 
-layout(location = 0) in vec3 vertex_position; // 3D world position of vertex
-layout(location = 1) in vec2 vertex_texcoord; // UV texture coordinates
-layout(location = 2) in vec3 vertex_normal;
+in vec3 vertex_position; // 3D world position of vertex
+in vec2 vertex_texcoord; // UV texture coordinates
+in vec3 vertex_normal;
 
 // Uniforms (set from c code)
 uniform mat4 mvp;			// Model view projection matrix 

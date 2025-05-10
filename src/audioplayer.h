@@ -2,7 +2,6 @@
 #define AUDIOPLAYER_H_
 
 #include <stdint.h>
-#include <sys/types.h>
 #include "raylib.h"
 
 #define SFX_MAX 	32
@@ -13,20 +12,21 @@
 #define POS_SET			0x04
 
 enum SFX_ID : uint8_t {
-	SFX_CLEAN			= 0,
-	SFX_PLAYER_WALK		= 1,
-	SFX_USE_INHALER		= 2,
-	SFX_REFILL_INHALER	= 3,
-	SFX_PLAYER_RUN		= 4,
-	SFX_PFG_WALK		= 5,
-	SFX_PFG_ATTACK		= 6,
-	SFX_PFG_DIAG_0		= 7,
-	SFX_PHARM_DIAG		= 8,
+	SFX_CLEAN,
+	SFX_USE_INHALER,
+	SFX_REFILL_INHALER,
+	SFX_PLAYER_RUN,		 
+	SFX_PFG_WALK,
+	SFX_PFG_ATTACK,
+	SFX_PFG_DIAG_0,
+	SFX_PHARM_DIAG,
+	SFX_BREATHE,
 };
 
 enum TRACK_ID : uint8_t {
-	TRACK_DEFAULT_MUSIC 	= 0,
-	TRACK_PHARM_MUSIC		= 1,
+	TRACK_DEFAULT_MUSIC,
+	TRACK_PHARM_MUSIC,
+	TRACK_PLAYER_WALK,
 };
 
 typedef struct {
@@ -59,5 +59,11 @@ Track LoadTrack(uint8_t flags, char *file_path);
 
 void EffectSetPos(AudioPlayer *ap, uint8_t id, Vector3 position);
 void TrackSetPos(AudioPlayer *ap, uint8_t id, Vector3 position);
+
+void PlayEffect(AudioPlayer *ap, uint8_t id);
+void PlayTrack(AudioPlayer *ap, uint8_t id);
+
+void StopEffect(AudioPlayer *ap, uint8_t id);
+void StopTrack(AudioPlayer *ap, uint8_t id);
 
 #endif // !AUDIOPLAYER_H_

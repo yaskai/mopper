@@ -26,7 +26,6 @@ void HandlerInit(Handler *handler, Player *player, LightHandler *lh) {
 	}
 
 	for(uint8_t i = 0; i < 32; i++) handler->task_objects[i] = (TaskObject){0};
-	LoadTaskObjects(handler, "task_objects.txt");
 }
 
 void HandlerClose(Handler *handler) {
@@ -42,53 +41,21 @@ void HandlerUpdate(Handler *handler) {
 }
 
 void HandlerDraw(Handler *handler) {
-	for(uint8_t i = 0; i < task_obj_count; i++) {
-		//if(!(handler->task_objects[i].flags & TASK_OBJ_ACTIVE)) continue;
-		DrawModelShaded(handler->task_objects[i].model, handler->task_objects[i].position);
-		//DrawBoundingBox(handler->task_objects[i].bounds, RED);
+	for(uint8_t i = 0; i < handler->task_obj_count; i++) {
+		TaskObject *obj = &handler->task_objects[i];
+		if((obj->flags & TASK_OBJ_ACTIVE) == 0) continue;
+
+		DrawModelShadedEx(obj->model, obj->position, obj->angle);
+		DrawBoundingBox(obj->bounds, WHITE);
+		DrawSphere(obj->position, 1.0f, ColorAlpha(WHITE, 0.5f));
 	}
 }
 
-void LoadTaskObjects(Handler *handler, char *file_path) {
-	uint8_t count = 0;
-
-	handler->spill_count = 0, handler->graff_count = 0, handler->trash_count = 0, handler->toilet_count = 0;
-
-	FILE *file = fopen(file_path, "r");
-
-	if(file) {
-		char line[64];
-		while(fgets(line,sizeof(line), file)) {
-			if(line[0] == COMMENT_MARKER) continue;
-			else if (line[0] == NEW_OBJ_MARRKER) {
-				char *name = strtok(line + 1, "\n");
-				uint8_t type = 0;
-
-				if(strcmp(name, "SPILL") 			== 0) {	type = SPILL, 		handler->spill_count++;  } 
-				else if(strcmp(name, "GRAFFITI") 	== 0) { type = GRAFFITI,	handler->graff_count++;  }
-				else if(strcmp(name, "TRASH")    	== 0) { type = TRASH,		handler->trash_count++;  }
-				else if(strcmp(name, "TOILET") 	 	== 0) { type = TOILET,		handler->toilet_count++; }
-				else continue;
-
-				handler->task_objects[count++] = MakeTaskObject(type, Vector3Zero(), handler->task_object_models[type]);
-			} if(line[0] == SETPOS_MARKER) {
-				if(count == 0) continue;
-
-				Vector3 pos = Vector3Zero();
-				sscanf(line, ">{ %f, %f, %f }", &pos.x, &pos.y, &pos.z);
-				handler->task_objects[count - 1].position = pos;	
-			}
-		}
-
-		handler->player->tasks[0].count = handler->spill_count;
-		handler->player->tasks[1].count = handler->graff_count;
-		handler->player->tasks[2].count = handler->trash_count;
-		handler->player->tasks[3].count = handler->toilet_count;
-
-		task_obj_count = count;
-		handler->task_obj_count = task_obj_count;
-
-		fclose(file);
-	} else puts("ERROR: COULD NOT OPEN TASK OBJECTS FILE!");
+void ResetObjects(Handler *handler) {
+	for(uint8_t i = 0; i < handler->task_obj_count; i++) {
+		TaskObject *obj = &handler->task_objects[i];
+		
+		obj->flags = (TASK_OBJ_ACTIVE);
+	}
 }
 

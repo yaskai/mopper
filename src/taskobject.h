@@ -18,13 +18,17 @@ typedef struct {
 	uint8_t type;
 	uint8_t flags;
 
+	float angle;
+	float start_angle;
+
 	Vector3 position;
+	Vector3 start_position;
+
 	BoundingBox bounds;
 
 	Model model;
-
-	Texture clean_tex;
-	Texture dirty_tex;
+	
+	Texture textures[2];
 } TaskObject;
 
 TaskObject MakeTaskObject(uint8_t type, Vector3 position, Model model);

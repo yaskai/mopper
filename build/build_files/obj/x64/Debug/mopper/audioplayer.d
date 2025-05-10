@@ -27,20 +27,7 @@ obj/x64/Debug/mopper/audioplayer.o: ../../src/audioplayer.c \
  /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
  /usr/include/bits/mathcalls-helper-functions.h \
  /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
- /usr/include/bits/iscanonical.h ../../src/audioplayer.h \
- /usr/include/sys/types.h /usr/include/bits/types/clock_t.h \
- /usr/include/bits/types/clockid_t.h /usr/include/bits/types/time_t.h \
- /usr/include/bits/types/timer_t.h /usr/include/endian.h \
- /usr/include/bits/endian.h /usr/include/bits/endianness.h \
- /usr/include/bits/byteswap.h /usr/include/bits/uintn-identity.h \
- /usr/include/sys/select.h /usr/include/bits/select.h \
- /usr/include/bits/types/sigset_t.h /usr/include/bits/types/__sigset_t.h \
- /usr/include/bits/types/struct_timeval.h \
- /usr/include/bits/types/struct_timespec.h \
- /usr/include/bits/pthreadtypes.h /usr/include/bits/thread-shared-types.h \
- /usr/include/bits/pthreadtypes-arch.h \
- /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h \
- /usr/include/bits/struct_rwlock.h
+ /usr/include/bits/iscanonical.h ../../src/audioplayer.h
 /usr/include/stdc-predef.h:
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h:
 /usr/include/stdint.h:
@@ -92,25 +79,3 @@ obj/x64/Debug/mopper/audioplayer.o: ../../src/audioplayer.c \
 /usr/include/bits/mathcalls-narrow.h:
 /usr/include/bits/iscanonical.h:
 ../../src/audioplayer.h:
-/usr/include/sys/types.h:
-/usr/include/bits/types/clock_t.h:
-/usr/include/bits/types/clockid_t.h:
-/usr/include/bits/types/time_t.h:
-/usr/include/bits/types/timer_t.h:
-/usr/include/endian.h:
-/usr/include/bits/endian.h:
-/usr/include/bits/endianness.h:
-/usr/include/bits/byteswap.h:
-/usr/include/bits/uintn-identity.h:
-/usr/include/sys/select.h:
-/usr/include/bits/select.h:
-/usr/include/bits/types/sigset_t.h:
-/usr/include/bits/types/__sigset_t.h:
-/usr/include/bits/types/struct_timeval.h:
-/usr/include/bits/types/struct_timespec.h:
-/usr/include/bits/pthreadtypes.h:
-/usr/include/bits/thread-shared-types.h:
-/usr/include/bits/pthreadtypes-arch.h:
-/usr/include/bits/atomic_wide_counter.h:
-/usr/include/bits/struct_mutex.h:
-/usr/include/bits/struct_rwlock.h:

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "audioplayer.h"
+#include "lights.h"
 #include "map.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -35,12 +36,23 @@ Vector3 closest_coll_point = (Vector3){0, 0, 0};
 
 Ray move_ray;
 
+uint8_t inhaler_count = 0;
+float dmg_timer = 0.0f;
+float heal_timer = 0.0f;
+
+Vector3 start_pos;
+
 Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Config *conf, LightHandler *light_handler) {
 	RenderTexture rend_tex;
 	rend_tex = LoadRenderTexture(conf->ww, conf->wh);
+	
+	inhaler_count = 3;
+	dmg_timer = 10.0f;
+	heal_timer = 0.0f;
 
 	Player player = (Player){
 		.flags = (PLAYER_ALIVE),
+		.hp = 100,
 		.speed = 4.5f,
 		.radius = 0.5f,
 		.position = position,
@@ -58,26 +70,26 @@ Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Conf
 	}; 
 
 	cb_tex = LoadRenderTexture(1024, 1024);
-	//cb_model = LoadModel("models/cb.glb");
 	cb_model = LoadModel("models/clipboard.glb");
-
 	paper_tex = cb_model.materials[cb_paper_mat_id].maps[MATERIAL_MAP_DIFFUSE].texture;
-
-	//for(uint8_t i = 0; i < cb_model.materialCount; i++) cb_model.materials[i].shader = player.light_handler->shader;
 
 	player.task_count = 4;
 	player.tasks = (Task*)malloc(sizeof(Task) * player.task_count);
 	
-	task_titles[0] = "Mop spills";
-	task_titles[1] = "Remove graffiti";
-	task_titles[2] = "Take out trash";
-	task_titles[3] = "Clean toilets";
+	task_titles[SPILL] 		= "Mop spills";
+	task_titles[GRAFFITI] 	= "Remove graffiti";
+	task_titles[TRASH] 		= "Take out trash";
+	task_titles[TOILET]		= "Clean toilets";
 
 	for(uint8_t i = 0; i < player.task_count; i++) {
-		player.tasks[i].complete = false;
-		player.tasks[i].progress = 0;
-		player.tasks[i].title = task_titles[i];
+		Task *task = &player.tasks[i];
+
+		task->progress = 0;
+		task->complete = false;
+		task->title = task_titles[i];
 	}
+
+	start_pos = player.position;
 
 	return player;
 }
@@ -97,12 +109,38 @@ void PlayerUpdate(Player *player) {
 								    .max = Vector3Add(PLAYER_BOUNDS.max, player->position) };
 
 	PlayerInput(player);
+
+	if(Vector3Length(player->velocity) > 0) dmg_timer -= dt * 0.01f;
+	if(dmg_timer <= 0.0f) { 
+		player->flags |= PLAYER_DAMAGE;
+		dmg_timer = 10.0f;
+
+		PlayEffect(player->ap, SFX_BREATHE);
+	}
+
+	if(player->flags & PLAYER_DAMAGE) player->hp -= dt * 0.01f;
+
+	if(player->flags & PLAYER_HEAL) {
+		player->flags &= ~PLAYER_DAMAGE;
+		dmg_timer = 10.0f;
+
+		heal_timer -= dt * 0.01f;
+		if(heal_timer <= 0.0f) player->flags &= ~PLAYER_HEAL;
+
+		player->hp += dt * 0.01f;
+	}
+
+	player->hp = Clamp(player->hp, 0.0f, 100.0f);
+
+	if((player->flags & PLAYER_ALIVE) && player->hp <= 0.0f) PlayerDie(player); 
 }
 
 void PlayerDraw(Player *player) {
 	if(player->flags & PLAYER_TASKVIEW) {
 		PlayerDrawClipBoard(player);
 	}
+
+	DrawBreathMeter(player);
 	
 	BeginMode2D(*player->cam2D);
 		DrawTextureRec(player->rend_tex.texture, (Rectangle){0, 0, player->conf->ww, -player->conf->wh}, (Vector2){0, 0}, WHITE);
@@ -153,8 +191,7 @@ void PlayerInput(Player *player) {
 	player->velocity.z = (GetFrameTime() * h_vel.z);
 	
 	Vector3 next_pos = Vector3Add(player->position, player->velocity);
-	//player->position = PlayerTraceMove(player, player->position, next_pos);
-	player->position = PlayerFindMove(player, player->position, next_pos);
+	player->position = PlayerTraceMove(player, player->position, next_pos);
 
 	cam->position = player->position;
     cam->target = Vector3Add(cam->position, forward);
@@ -173,21 +210,40 @@ void PlayerInput(Player *player) {
 	// Interact with task objects
 	if(IsMouseButtonPressed(0)) {
 		Ray ray = (Ray){.position = player->position, .direction = Vector3Normalize(Vector3Subtract(cam->target, cam->position))};
+		ray.position = Vector3Subtract(ray.position, Vector3Scale(ray.direction, 1.0f));
 
 		for(uint8_t i = 0; i < pHandler->task_obj_count; i++) {
 			TaskObject *obj = &pHandler->task_objects[i];
 			if(!(obj->flags & TASK_OBJ_ACTIVE)) continue;
 			
-			RayCollision coll = GetRayCollisionBox(ray, obj->bounds);
-			if(coll.hit && coll.distance <= 1.0f) {
+			RayCollision coll = GetRayCollisionSphere(ray, obj->position, 1.0f);
+
+			if(coll.hit && coll.distance <= 1.5f) {
 				PlaySound(player->ap->sfx[SFX_CLEAN].sound);
 
 				obj->flags &= ~TASK_OBJ_ACTIVE;
+
 				player->tasks[obj->type].progress++;
-				if(player->tasks[obj->type].progress == player->tasks[obj->type].count) player->tasks[obj->type].complete = true;
+				UpdateTasks(player);
 				break;
 			}
 		}
+	}
+
+	// Heal
+	if(IsKeyPressed(KEY_Q) && inhaler_count > 0) {
+		StopEffect(player->ap, SFX_BREATHE);
+		PlayEffect(player->ap, SFX_USE_INHALER);
+
+		player->flags |= PLAYER_HEAL;
+		player->flags &= ~PLAYER_DAMAGE;
+
+		player->hp += 25.0f;
+
+		heal_timer = 1.0f;
+		dmg_timer = 2.0f;
+
+		inhaler_count--;
 	}
 }
 
@@ -248,57 +304,7 @@ void PlayerDrawClipBoard(Player *player) {
 	EndTextureMode();
 }
 
-Vector3 PlayerTraceMove(Player *player, Vector3 start_point, Vector3 end_point) {
-	Map *map = player->map;
-
-	Vector3 dest = end_point;
-
-	Vector3 direction = Vector3Normalize(Vector3Subtract(end_point, start_point));
-	float full_dist = Vector3Distance(end_point, start_point) + player->radius;
-	
-	BoundingBox check_bounds = (BoundingBox) {
-		Vector3Min(Vector3Add(player->bounds.min, start_point), Vector3Add(player->bounds.min, end_point)),	
-		Vector3Max(Vector3Add(player->bounds.max, start_point), Vector3Add(player->bounds.max, end_point)) };
-
-	uint32_t max_node_hits = 32;
-	uint32_t node_hit_count = 0;
-	BvhNode *hit_nodes[max_node_hits];
-	BvhBoxSweep(map->root_node, check_bounds, hit_nodes, &node_hit_count, max_node_hits);
-
-	int hit_id = -1;
-	
-	Ray ray = (Ray){ .position = start_point, .direction = Vector3Normalize(Vector3Subtract(end_point, start_point)) };
-	RayCollision closest_coll;
-	closest_coll.distance = FLT_MAX;
-
-	for(uint32_t i = 0; i < node_hit_count; i++) {
-		BvhNode *node = hit_nodes[i];
-		if(node->tri_count == 0) continue;
-
-		for(uint32_t j = 0; j < node->tri_count; j++) {
-			Polygon *tri = &map->polygons[node->tri_indices[j]];
-			if(fabsf(tri->normal.y) == 1.0f) continue;
-
-			RayCollision coll = GetRayCollisionTriangle(ray, tri->vertices[0], tri->vertices[1], tri->vertices[2]);
-			if(!coll.hit || coll.distance > player->radius) continue;
-
-			Plane plane = TriToPlane(*tri);
-
-			float dist = PlaneDistance(dest, plane);
-
-			if(dist < player->radius) {
-				float push_dist = player->radius - dist;
-				dest = Vector3Add(dest, Vector3Scale(plane.normal, push_dist));
-			}
-		}
-	}
-	
-	return (Vector3){dest.x, player->position.y, dest.z};
-}
-
-Vector3 PlayerFindMove(Player *player, Vector3 start_point, Vector3 wish_point) {
-	Map *map = player->map;
-
+Vector3 PlayerTraceMove(Player *player, Vector3 start_point, Vector3 wish_point) { Map *map = player->map;
 	start_point.y -= 0.7f;
 	wish_point.y -= 0.7f;
 
@@ -377,5 +383,58 @@ void DrawTaskView(Player *player) {
 
 		if(player->tasks[i].complete) DrawLineEx((Vector2){origin.x - 20, y_val + 25}, (Vector2){origin.x + 750, y_val + 25}, 5, RED);
 	}
+}
+
+void DrawBreathMeter(Player *player) {
+	BeginTextureMode(player->rend_tex);
+
+	int ww = player->conf->ww, wh = player->conf->wh;
+	DrawRectangle(0, 0, ww, 32, ColorAlpha(GRAY, 0.5f));
+	
+	int rand_range = 0;
+
+	Color c = GREEN;
+	if(player->hp <= 50) { c = YELLOW, rand_range = 1; }
+	if(player->hp <= 25) { c = RED,	   rand_range = 5; }
+
+	DrawRectangleV(Vector2Zero(), (Vector2){ww * (player->hp / 100) + GetRandomValue(-rand_range, rand_range), 32}, c);
+
+	EndTextureMode();
+}
+
+void PlayerDie(Player *player) {
+	player->flags &= ~PLAYER_ALIVE;
+}
+
+void PlayerReset(Player *player) {
+	player->position = start_pos;
+	player->hp = 100.0f;
+	player->flags = (PLAYER_ALIVE);
+
+	for(uint8_t i = 0; i < player->task_count; i++) {
+		player->tasks[i].progress = 0;
+		player->tasks[i].complete = false;
+	}
+
+	player->velocity = Vector3Zero();
+
+	dmg_timer = 10.0f;
+	heal_timer = 0.0f;	
+}
+
+void UpdateTasks(Player *player) {
+	for(uint8_t i = 0; i < player->task_count; i++) {
+		Task *task = &player->tasks[i];
+		if(task->progress == task->count) task->complete = true;
+	}
+
+	if(CheckWin(player)) player->flags |= PLAYER_WIN;
+}
+
+bool CheckWin(Player *player) {
+	for(uint8_t i = 0; i < player->task_count; i++)
+		if(!player->tasks[i].complete) return false;	
+
+	return true;
 }
 

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "raylib.h"
 
-#define MAX_LIGHTS 12
+#define MAX_LIGHTS 64 
 
 typedef enum : uint8_t {
 	LIGHT_DEFAULT 	= 0,
@@ -35,5 +35,8 @@ void InitLights(LightHandler *handler);
 void UpdateLights(LightHandler *handler);
 
 void DrawModelShaded(Model model, Vector3 position);
+void DrawModelShadedEx(Model model, Vector3 position, float angle);
+
+Vector3 ColorQuantized(Color color);
 
 #endif

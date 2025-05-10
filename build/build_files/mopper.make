@@ -182,6 +182,7 @@ GENERATED += $(OBJDIR)/lights.o
 GENERATED += $(OBJDIR)/main.o
 GENERATED += $(OBJDIR)/map.o
 GENERATED += $(OBJDIR)/player.o
+GENERATED += $(OBJDIR)/rw.o
 GENERATED += $(OBJDIR)/salesman.o
 GENERATED += $(OBJDIR)/taskobject.o
 OBJECTS += $(OBJDIR)/audioplayer.o
@@ -191,6 +192,7 @@ OBJECTS += $(OBJDIR)/lights.o
 OBJECTS += $(OBJDIR)/main.o
 OBJECTS += $(OBJDIR)/map.o
 OBJECTS += $(OBJDIR)/player.o
+OBJECTS += $(OBJDIR)/rw.o
 OBJECTS += $(OBJDIR)/salesman.o
 OBJECTS += $(OBJDIR)/taskobject.o
 
@@ -275,6 +277,9 @@ $(OBJDIR)/map.o: ../../src/map.c
 	@echo "$(notdir $<)"
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/player.o: ../../src/player.c
+	@echo "$(notdir $<)"
+	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/rw.o: ../../src/rw.c
 	@echo "$(notdir $<)"
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/salesman.o: ../../src/salesman.c

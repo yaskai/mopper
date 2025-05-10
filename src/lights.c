@@ -31,7 +31,6 @@ void MakeLight(int type, float range, Vector3 position, Color color, LightHandle
 
 void InitLights(LightHandler *handler) {
 	handler->light_count = 0;
-	//LIGHT_COLOR_DEFAULT = ColorBrightness(BEIGE, -0.25f);
 	LIGHT_COLOR_DEFAULT = ColorBrightness(BEIGE, 0.25f);
 
 	handler->shader = LoadShader(
@@ -42,40 +41,17 @@ void InitLights(LightHandler *handler) {
 
 	light_shader = handler->shader;
 	
-	enabled_loc = GetShaderLocation(handler->shader, "light_enabled");
-	positions_loc = GetShaderLocation(handler->shader, "light_positions");
-	colors_loc = GetShaderLocation(handler->shader, "light_colors");
-	ranges_loc = GetShaderLocation(handler->shader, "light_ranges");
-	count_loc = GetShaderLocation(handler->shader,  "light_count");
-	time_loc = GetShaderLocation(handler->shader, "time");
-
-	// Static lights
-	MakeLight(LIGHT_DEFAULT, 35.0f, (Vector3){   0.0f,   8.0f,   0.0f }, LIGHT_COLOR_DEFAULT, 			handler);
-	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){ -40.0f,   3.0f,   0.0f }, LIGHT_COLOR_DEFAULT, 			handler);
-	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){ -40.0f,   3.0f, -15.0f }, LIGHT_COLOR_DEFAULT,			handler);
-	MakeLight(LIGHT_DEFAULT, 20.0f, (Vector3){   0.0f,   3.0f, -44.0f }, LIGHT_COLOR_DEFAULT, 			handler);
-	MakeLight(LIGHT_DEFAULT, 10.0f, (Vector3){ -65.0f,   3.0f,  15.0f }, LIGHT_COLOR_DEFAULT, 			handler);
-
-	//MakeLight(LIGHT_PLAYER, 10.0f, Vector3Zero(), LIGHT_COLOR_DEFAULT, handler);
+	enabled_loc 	= GetShaderLocation(handler->shader, "light_enabled");
+	positions_loc 	= GetShaderLocation(handler->shader, "light_positions");
+	colors_loc 		= GetShaderLocation(handler->shader, "light_colors");
+	ranges_loc 		= GetShaderLocation(handler->shader, "light_ranges");
+	count_loc 		= GetShaderLocation(handler->shader,  "light_count");
+	time_loc 		= GetShaderLocation(handler->shader, "time");
 
 	int enabled[MAX_LIGHTS];
 	Vector3 positions[MAX_LIGHTS];
 	Vector3 colors[MAX_LIGHTS];
 	float ranges[MAX_LIGHTS];
-
-	for(int i = 0; i < handler->light_count; i++) {
-		enabled[i] = 1;	
-		positions[i] = handler->lights[i].position;
-
-		colors[i] = (Vector3) {
-			handler->lights[i].color.r / 255.0f,
-			handler->lights[i].color.g / 255.0f,
-			handler->lights[i].color.b / 255.0f
-		};
-		
-		ranges[i] = handler->lights[i].range;
-	}
-
 	int count = handler->light_count;
 	
 	SetShaderValueV(handler->shader, enabled_loc, enabled, SHADER_UNIFORM_INT, count);
@@ -86,11 +62,6 @@ void InitLights(LightHandler *handler) {
 
 	Vector4 diffuse = (Vector4){ 0.55f, 0.15f, 0.15f, 1.0f };
 	SetShaderValue(handler->shader, GetShaderLocation(handler->shader, "col_diffuse"), &diffuse, SHADER_UNIFORM_VEC4);
-
-	printf("light count: %d\n", handler->light_count);
-	for(int i = 0; i < handler->light_count; i++) {
-		printf("light[%d] enabled: %d\n", i, handler->lights[i].enabled);
-	}
 }
 
 void UpdateLights(LightHandler *handler) {
@@ -100,6 +71,9 @@ void UpdateLights(LightHandler *handler) {
 	int enabled[handler->light_count];
 	Vector3 positions[handler->light_count];
 	float ranges[handler->light_count];
+	Vector3 colors[handler->light_count];
+	
+	SetShaderValue(handler->shader, count_loc, &handler->light_count, SHADER_UNIFORM_INT);
 
 	for(int i = 0; i < handler->light_count; i++) {
 		if(handler->lights[i].type == LIGHT_PLAYER) {
@@ -118,7 +92,10 @@ void UpdateLights(LightHandler *handler) {
 
 		// Set ranges
 		ranges[i] = handler->lights[i].range;		
-		SetShaderValueV(handler->shader, ranges_loc, positions, SHADER_UNIFORM_VEC3, handler->light_count);
+		SetShaderValueV(handler->shader, ranges_loc, ranges, SHADER_UNIFORM_FLOAT, handler->light_count);
+
+		colors[i] = ColorQuantized(handler->lights[i].color);
+		SetShaderValueV(handler->shader, colors_loc, colors, SHADER_UNIFORM_VEC3, handler->light_count);
 	}
 }
 
@@ -130,3 +107,21 @@ void DrawModelShaded(Model model, Vector3 position) {
 	DrawModel(model, position, 1.0f, WHITE);	
 }
  
+void DrawModelShadedEx(Model model, Vector3 position, float angle) {
+	BeginShaderMode(light_shader);	
+
+	Matrix mat = model.transform;
+	mat = MatrixMultiply(mat, MatrixTranslate(position.x, position.y, position.z));
+	//mat = MatrixMultiply(mat, MatrixRotateY(angle * DEG2RAD));
+
+	int mat_model_loc = GetShaderLocation(light_shader, "mat_model");
+	SetShaderValueMatrix(light_shader, mat_model_loc, mat);
+
+	DrawModelEx(model, position, (Vector3){0, 1, 0}, angle, Vector3One(), WHITE);
+	EndShaderMode();
+}
+
+Vector3 ColorQuantized(Color color) {
+	return (Vector3){ color.r / 255.0f, color.g / 255.0f, color.b / 255.0f };
+}
+

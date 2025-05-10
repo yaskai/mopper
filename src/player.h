@@ -11,6 +11,9 @@
 
 #define PLAYER_ALIVE		0x01
 #define PLAYER_TASKVIEW		0x02
+#define PLAYER_DAMAGE		0x04
+#define PLAYER_HEAL			0x08
+#define PLAYER_WIN			0x10
 
 #define PLAYER_BOUNDS \
 (BoundingBox){(Vector3){ -1.0f, -1.0f, -1.0f }, (Vector3){ 1.0f, 1.0f, 1.0f }}
@@ -25,7 +28,7 @@ typedef struct {
 typedef struct {
 	uint8_t flags;
 
-	short hp;
+	float hp;
 	
 	float pitch;
 	float yaw;
@@ -80,8 +83,14 @@ void PlayerDrawBvhDebug(Player *player);
 void PlayerDrawClipBoard(Player *player);
 
 Vector3 PlayerTraceMove(Player *player, Vector3 start_point, Vector3 end_point);
-Vector3 PlayerFindMove(Player *player, Vector3 start_point, Vector3 wish_point);
 
 void DrawTaskView(Player *player);
+void DrawBreathMeter(Player *player);
+
+void PlayerDie(Player *player);
+void PlayerReset(Player *player);
+
+void UpdateTasks(Player *player);
+bool CheckWin(Player *player);
 
 #endif

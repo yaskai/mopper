@@ -18,8 +18,8 @@ void CloseTaskObject(TaskObject *obj) {
 
 void TaskOjbectUpdate(TaskObject *obj) {
 	obj->bounds = (BoundingBox) {
-		.min = Vector3Subtract(obj->position, (Vector3){0.5f, 0.5f, 0.5f}),
-		.max = Vector3Add(obj->position, (Vector3){0.5f, 0.5f, 0.5f})
+		.min = Vector3Subtract(obj->position, (Vector3){1.5f, 1.5f, 1.5f}),
+		.max = Vector3Add(obj->position, (Vector3){1.5f, 1.5f, 1.5f})
 	};
 }
 

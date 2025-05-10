@@ -10,41 +10,38 @@
 #include "map.h"
 #include "handler.h"
 #include "audioplayer.h"
+#include "rw.h"
 
-enum GAME_STATE : uint8_t {
-	START,
-	MAIN,
-	GAMEOVER
-}; uint8_t game_state = START;
+enum GAME_STATE : uint8_t { START, MAIN, GAMEOVER_LOSE, GAMEOVER_WIN }; 
+uint8_t game_state = START;
 
 void UpdateMain(Player *player, LightHandler *lights, Handler *handler);
 void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler);
+void ResetGame(Player *player, Handler *handler);
+void RenderTitle(Config *conf, Map *map, LightHandler *lh);
 
 Camera cam;
 Camera2D cam2D;
 Camera fixed_cam;
 
 Font font0;
-Model level_model;
+//Model level_model;
 
 Vector2 v_res = {320, 240};
 RenderTexture buf_rtex;
-
-Model clipboard_model;
 
 void PlayerSetHandler(Player *player, Handler *handler);
 
 int main () {
 	SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_FULLSCREEN_MODE);
+	SetTraceLogLevel(LOG_INFO);
 
-	SetTraceLogLevel(LOG_WARNING);
-
+	int ww = 1920, wh = 1080, fps = 60;
 	Config conf = (Config){0};
 	LoadConfig(&conf, "options.conf");
-
-	int ww = conf.ww;
-	int wh = conf.wh;
-	int fps = conf.fps;
+	
+	if(conf.flags & CONF_LOADED) ww = conf.ww, wh = conf.wh, fps = conf.fps;
+	else conf.ww = ww, conf.wh = wh, conf.fps = fps;
 
 	InitWindow(ww, wh, "Mopper");
 	SetTargetFPS(fps);
@@ -58,8 +55,6 @@ int main () {
 	buf_rtex = LoadRenderTexture(v_res.x, v_res.y);
 	font0 = LoadFont("fonts/dokdo.ttf");
 
- 	clipboard_model = LoadModel("models/clipboard.glb");
-
 	char *level_name;
 	level_name = "mall_greybox.glb";
 	//level_name = "testmap.glb";
@@ -67,12 +62,12 @@ int main () {
 	Map map = (Map){0};
 	//LoadCollisionGeometry(&map, "testmap.obj");
 
-	level_model = LoadModel(level_name);
+	//level_model = LoadModel(level_name);
 	LoadMap(&map, level_name);
 
 	// Camera setup 
-	cam.position = (Vector3){ 25.0f, 15.0f, 25.0f };
-	cam.target   = (Vector3){ 0.0f, -15.0f, 0.f };
+	cam.position = (Vector3){ 8.0f, 2.0f, 1.0f };
+	cam.target   = (Vector3){ 0.0f, 2.0f, 0.0f };
 	cam.up 	  	 = (Vector3){ 0, 1, 0 };
 	cam.fovy = 120;
 	cam.projection = CAMERA_PERSPECTIVE; 
@@ -85,7 +80,7 @@ int main () {
 	fixed_cam.position	    = (Vector3){0, 0, -4};
 	fixed_cam.target	    = Vector3Zero();
 	fixed_cam.up		    = (Vector3){0, 1, 0};
-	fixed_cam.fovy 	   		= 45.0f;
+	fixed_cam.fovy 	   		= 60.0f;
 	fixed_cam.projection	= CAMERA_PERSPECTIVE; 
 	
 	// Lighting setup
@@ -96,11 +91,11 @@ int main () {
 		map.model.materials[i].shader = light_handler.shader;
 	}
 
-	Player player = PlayerInit((Vector3){3.0f, 1.0f, 0.0f}, &cam, &cam2D, &map, &conf, &light_handler);
+	Player player = PlayerInit((Vector3){3.0f, 1.5f, 0.0f}, &cam, &cam2D, &map, &conf, &light_handler);
 	player.font = font0;
 	player.fixed_cam = &fixed_cam;
 
-	Model sm_model = LoadModel("PerfumeGuy.glb");
+	Model sm_model = LoadModel("models/perfumeGuy.glb");
 	for(uint16_t i = 0; i < map.model.materialCount; i++) map.model.materials[i].shader = light_handler.shader;
 
 	Handler handler = {0};
@@ -112,24 +107,27 @@ int main () {
 
 	player.ap = &ap;
 
+	DataRead(&light_handler, &handler, "map/lights.txt", "map/objects.txt");
+
 	while(!WindowShouldClose()) {
+		//PlayTrack(&ap, TRACK_DEFAULT_MUSIC);
+		
 		// Update
 		switch(game_state) {
 			case START:
-				if(IsKeyPressed(KEY_ENTER)) {
-					// Start game
-					game_state = MAIN;
-				}
+				if(IsKeyPressed(KEY_ENTER)) game_state = MAIN; // Start game
 				break;
+
 			case MAIN:
 				UpdateMain(&player, &light_handler, &handler);
 				break;
-			case GAMEOVER:
+
+			case GAMEOVER_LOSE:
+			case GAMEOVER_WIN:
+				if(IsKeyPressed(KEY_ENTER)) ResetGame(&player, &handler);
+				if(IsKeyPressed(KEY_ENTER)) ResetGame(&player, &handler);
 				break;
 		}	
-
-		//UpdateMusicStream(ap.tracks[TRACK_DEFAULT_MUSIC].music);
-		//UpdateMusicStream(ap.tracks[TRACK_PHARM_MUSIC].music);
 
 		// Render 
 		BeginDrawing();
@@ -137,15 +135,23 @@ int main () {
 
 			switch(game_state) {
 				case START:
-					BeginMode2D(cam2D);
-					//DrawText("PRESS ENTER TO START", 650, 500, 50, RAYWHITE);
-					DrawTextEx(font0, "PRESS ENTER TO START", (Vector2){650, 500}, 50, 2.0f, RAYWHITE);
-					EndMode2D();
+					RenderTitle(&conf, &map, &light_handler);
 					break;
+
 				case MAIN:
 					RenderMain(&player, &map, &light_handler, &conf, &handler);
 					break;
-				case GAMEOVER:
+
+				case GAMEOVER_LOSE:
+					BeginMode2D(cam2D);
+					DrawTextEx(font0, "YOU DIED", (Vector2){750, 500}, 50, 2.0f, RAYWHITE);
+					EndMode2D();
+					break;
+
+				case GAMEOVER_WIN:
+					BeginMode2D(cam2D);
+					DrawTextEx(font0, "SHIFT OVER", (Vector2){750, 500}, 50, 2.0f, RAYWHITE);
+					EndMode2D();
 					break;
 			}
 
@@ -156,8 +162,7 @@ int main () {
 	UnloadMap(&map);
 	UnloadFont(font0);
 	UnloadRenderTexture(buf_rtex);
-	UnloadModel(level_model);
-	UnloadModel(clipboard_model);
+	//UnloadModel(level_model);
 	HandlerClose(&handler);
 	AudioPlayerClose(&ap);
 
@@ -174,33 +179,61 @@ void UpdateMain(Player *player, LightHandler *lights, Handler *handler) {
 	PlayerUpdate(player);
 
 	HandlerUpdate(handler);
+
+	if((player->flags & PLAYER_ALIVE) == 0) game_state = GAMEOVER_LOSE;
+	if((player->flags & PLAYER_WIN)	  != 0) game_state = GAMEOVER_WIN;
 }
 
 void RenderMain(Player *player, Map *map, LightHandler *lights, Config *conf, Handler *handler) {
 	BeginTextureMode(buf_rtex);
 	ClearBackground((Color){0, 0, 0, 0});
 	BeginMode3D(cam);
-		Matrix level_matrix = map->model.transform;
-		int mat_model_loc = GetShaderLocation(lights->shader, "mat_model");
-		SetShaderValueMatrix(lights->shader, mat_model_loc, level_matrix);
 
-		DrawModel(map->model, Vector3Zero(), 1.0f, WHITE);
-		//DebugDrawMapTris(map);
-		
-		//PlayerDraw(player);
-		//DrawModelWires(level_model, Vector3Zero(), 1.0f, SKYBLUE);
-		//DrawBvhDebug(map->root_node, map->polygons);
-		//PlayerDrawBvhDebug(player);
-		//DrawTriNormals(map);
+	DrawModelShadedEx(map->model, Vector3Zero(), 0.0f);
+	HandlerDraw(handler);
+	
+	//DrawModel(map->model, Vector3Zero(), 1.0f, WHITE);
+	//DebugDrawMapTris(map);
+	
+	//PlayerDraw(player);
+	//DrawModelWires(level_model, Vector3Zero(), 1.0f, SKYBLUE);
+	//DrawBvhDebug(map->root_node, map->polygons);
+	//PlayerDrawBvhDebug(player);
+	//DrawTriNormals(map);
 
-		HandlerDraw(handler);
 	EndMode3D();
 	EndTextureMode();
 
 	BeginMode2D(cam2D);
-		DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
-		PlayerDraw(player);
-		PlayerDrawDebugInfo(player, font0);
+
+	DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
+	PlayerDraw(player);
+	PlayerDrawDebugInfo(player, font0);
+
+	EndMode2D();
+}
+
+void ResetGame(Player *player, Handler *handler) {
+	PlayerReset(player);
+	ResetObjects(handler);
+	game_state = MAIN;
+}
+
+void RenderTitle(Config *conf, Map *map, LightHandler *lh) {
+	UpdateCamera(&cam, CAMERA_ORBITAL);
+	UpdateLights(lh);
+
+	BeginTextureMode(buf_rtex);
+	ClearBackground((Color){0, 0, 0, 0});
+	BeginMode3D(cam);
+	DrawModelShadedEx(map->model, Vector3Zero(), 0.0f);
+	EndMode3D();
+	EndTextureMode();
+
+	BeginMode2D(cam2D);
+	DrawTexturePro(buf_rtex.texture, (Rectangle){0, 0, v_res.x, -v_res.y}, (Rectangle){0, 0, conf->ww, conf->wh}, Vector2Zero(), 0.0f, WHITE);
+	DrawTextEx(font0, "The Last Mopper", (Vector2){450, 300}, 150, 2.0f, RAYWHITE);
+	DrawTextEx(font0, "PRESS ENTER TO START", (Vector2){680, 800}, 50, 2.0f, RAYWHITE);
 	EndMode2D();
 }
 

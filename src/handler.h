@@ -12,8 +12,8 @@
 #define SETPOS_MARKER	'>'
 
 typedef struct {
-	uint8_t spill_count, graff_count, trash_count, toilet_count;
 	uint8_t task_obj_count;
+	uint8_t instances[4];
 
 	Player *player;
 
@@ -27,6 +27,6 @@ void HandlerClose(Handler *handler);
 void HandlerUpdate(Handler *handler);
 void HandlerDraw(Handler *handler);
 
-void LoadTaskObjects(Handler *handler, char *file_path);
+void ResetObjects(Handler *handler);
 
 #endif // !HANDLER_H_

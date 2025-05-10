@@ -1,13 +1,13 @@
 #version 330
 
-#define MAX_LIGHTS 12 
+#define MAX_LIGHTS 64 
 
 // Input from vertex shader
 in vec2 frag_texcoord;	// Texture coordinates
 in vec3 frag_worldpos;
 in vec3 frag_normal;
 
-// Uniforms (set from C code)
+// Uniforms (set from game code)
 uniform sampler2D texture0;		// Texture to use
 uniform vec4 col_diffuse;		// Base color(white by default)
 uniform vec3 light_pos;			// Light position(set in game code)
@@ -20,6 +20,7 @@ uniform float light_ranges[MAX_LIGHTS];
 uniform int light_count;
 
 uniform float time;
+uniform vec3 ambient;
 
 // Output color
 out vec4 final_color;
@@ -52,14 +53,13 @@ void main() {
 		}
 	}
 
-	vec3 ambient_light = vec3(0.01, 0.01, 0.01);  // Small ambient light
-	total_light += ambient_light;
+	total_light += ambient;
 
 	vec3 lit = tint.rgb * total_light;
 
 	float dither = noise(frag_worldpos.xz, time) * 0.025;
 	vec3 quantized = ((lit + dither) * 255.0) / 255.0;
 
-	final_color = vec4(quantized, 1.0);
+	final_color = vec4(quantized, tex_color.a);
 }
 
