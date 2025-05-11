@@ -43,13 +43,17 @@ void main() {
 			float dist = distance(light_positions[i], frag_worldpos);
 
 			float breathe = sin(time * 2.0 + float(i) * 3.14) * 0.05 + 1.0;
+			//if(breathe % 2.0 == 0.0) breathe = 0.0; 
 			
 			float dyn_range = light_ranges[i] * breathe;
 
 			float attenuation = 1.0 - smoothstep(0.0, dyn_range, dist);
 			float diffuse = max(dot(normal, light_dir), 0.0);
 
-			total_light += light_colors[i] * diffuse * attenuation;
+			float flicker = noise(vec2(time * 0.15 + float(i) * 123.456, float(i) * 654.321), time);
+			flicker = mix(0.85, 1.1, flicker); 
+
+			total_light += light_colors[i] * diffuse * attenuation * flicker;
 		}
 	}
 

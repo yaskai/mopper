@@ -80,9 +80,10 @@ void SalesmanUpdate(Salesman *sm) {
 					Vector3 point = sm->spawn_points[i].position;
 					float dist = Vector3Distance(point, sm->player->position);
 
-					float aggro = Clamp(1.0f - ((float)sm->player->hour / 5.0f), 0.2f, 1.0f);
-					float weight = Vector3Distance(sm->player->position, point) * aggro + GetRandomValue(0, 5);
-					if(fabs(point.y - player->position.y) > 2.0f) weight += 2.0f;
+					//float aggro = Clamp(1.0f - ((float)sm->player->hour / 6.0f), 0.1f, 1.0f);
+					//float weight = dist * (aggro + GetRandomValue(0, 10));
+					float weight = dist * (1.0f - Clamp(player->hour / 6.0f, 0.0f, 0.9f) + GetRandomValue(0, sm->spawn_point_count));
+					if(fabs(point.y - player->position.y) > 3.0f) weight += 0.1f;
 					
 					if(weight < best_weight) {
 						best_weight = weight;
@@ -102,8 +103,10 @@ void SalesmanUpdate(Salesman *sm) {
 		case ATTACK: {
 			sm->position = Vector3Add(sm->position, Vector3Scale(attack_dir, 10.0f * GetFrameTime()));
 			if(CheckCollisionSpheres(sm->position, 1.0f, player->position, 0.5f)) {
-				sm->player->flags |= PLAYER_DAMAGE;
-				sm->player->flags &= ~PLAYER_HEAL;
+				player->damage_timer = 0.0f;
+				player->heal_timer = 0.0f;
+				player->flags |= PLAYER_DAMAGE;
+				player->flags &= ~PLAYER_HEAL;
 
 				sm->action_timer = 20.0f;
 				sm->state = HIDE;

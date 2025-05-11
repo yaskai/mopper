@@ -25,6 +25,7 @@ RenderTexture cb_tex;
 Model cb_model;
 int cb_paper_mat_id = 4;
 Texture paper_tex;
+float cb_y = -1;
 
 float taskview_on_timer = 0.0f;
 
@@ -74,7 +75,9 @@ Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Conf
 		.yaw = 0.0f, .pitch = 0.0f, .roll = 0.0f,
 
 		.minute = 0, .hour = 0,
-		.task_points = 0, .inhaler_count = 3
+		.task_points = 0, .inhaler_count = 3,
+
+		.damage_timer = 30.0f, .heal_timer = 0.0f,
 	}; 
 
 	cb_tex = LoadRenderTexture(1024, 1024);
@@ -121,11 +124,11 @@ void PlayerUpdate(Player *player) {
 	CheckGround(player);	
 
 	if(Vector3Length(player->velocity) > 0) {
-		dmg_timer -= dt * 0.01f;
+		player->damage_timer -= dt * 0.01f;
 		PlayTrack(player->ap, TRACK_PLAYER_WALK);
 	} else {
-		dmg_timer += dt * 0.015f;
-		if(dmg_timer > 1.0f) player->flags &= ~PLAYER_DAMAGE;
+		player->damage_timer += dt * 0.015f;
+		if(player->damage_timer > 1.0f) player->flags &= ~PLAYER_DAMAGE;
 	}
 
 	time_tick -= GetFrameTime();
@@ -140,7 +143,7 @@ void PlayerUpdate(Player *player) {
 
 	player->dialogue_timer -= GetFrameTime();
 	
-	if(dmg_timer <= 0.0f) { 
+	if(player->damage_timer <= 0.0f) { 
 		player->flags |= PLAYER_DAMAGE;
 		//dmg_timer = 30.0f;
 		
@@ -151,10 +154,10 @@ void PlayerUpdate(Player *player) {
 
 	if(player->flags & PLAYER_HEAL) {
 		player->flags &= ~PLAYER_DAMAGE;
-		dmg_timer = 30.0f;
+		player->damage_timer = 30.0f;
 
-		heal_timer -= dt * 0.01f;
-		if(heal_timer <= 0.0f) player->flags &= ~PLAYER_HEAL;
+		player->heal_timer -= dt * 0.01f;
+		if(player->heal_timer <= 0.0f) player->flags &= ~PLAYER_HEAL;
 
 		player->hp += dt * 0.01f;
 	}
@@ -165,7 +168,12 @@ void PlayerUpdate(Player *player) {
 }
 
 void PlayerDraw(Player *player) {
-	if(player->flags & PLAYER_TASKVIEW) {
+	if((player->flags & PLAYER_TASKVIEW) == 0) {
+		cb_y = Lerp(cb_y, -1, 0.25f);
+		if(cb_y <= -0.5f) cb_y = -1;
+	}
+
+	if(player->flags & PLAYER_TASKVIEW || cb_y > -0.25f) {
 		PlayerDrawClipBoard(player);
 	}
 
@@ -250,6 +258,7 @@ void PlayerInput(Player *player) {
 	if(IsKeyPressed(KEY_E)) {
 		if((player->flags & PLAYER_TASKVIEW) == 0) {
 			player->flags |= PLAYER_TASKVIEW;
+			//cb_y = -1;
 		} else {
 			BeginTextureMode(player->rend_tex);
 			ClearBackground((Color){0, 0, 0, 0});
@@ -292,8 +301,8 @@ void PlayerInput(Player *player) {
 
 		player->hp += 25.0f;
 
-		heal_timer = 1.0f;
-		dmg_timer = 30.0f;
+		player->heal_timer = 1.0f;
+		player->damage_timer = 30.0f;
 
 		player->inhaler_count--;
 	}
@@ -350,7 +359,8 @@ void PlayerDrawClipBoard(Player *player) {
 	ClearBackground((Color){0, 0, 0, 0});
 	BeginMode3D(*player->fixed_cam);
 	
-	DrawModel(cb_model, Vector3Zero(), 1.0f, WHITE);
+	cb_y = Lerp(cb_y, 0, 0.1f);
+	DrawModel(cb_model, (Vector3){0, cb_y, 0}, 1.0f, WHITE);
 		
 	EndMode3D();
 	EndTextureMode();
@@ -489,8 +499,8 @@ void PlayerReset(Player *player) {
 
 	player->velocity = Vector3Zero();
 
-	dmg_timer = 30.0f;
-	heal_timer = 0.0f;
+	player->damage_timer = 30.0f;
+	player->heal_timer = 0.0f;
 	
 	time_tick = 0.0f;
 	player->hour = 0, player->minute = 0;

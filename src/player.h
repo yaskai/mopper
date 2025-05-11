@@ -76,6 +76,8 @@ typedef struct {
 	uint8_t task_points;
 
 	uint8_t inhaler_count;
+
+	float damage_timer, heal_timer;
 } Player;
 
 Player PlayerInit(Vector3 position, Camera *cam, Camera2D *cam2D, Map *map, Config *conf, LightHandler *light_handler);
